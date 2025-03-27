@@ -1,74 +1,78 @@
 import java.math.BigInteger;
-import java.security.SecureRandom;
+//import java.security.SecureRandom;
 import java.util.Scanner;
 
 public class RSA {
+    private BigInteger n, d, e;
+    
+    public RSA(BigInteger p, BigInteger q) {
+        n = p.multiply(q); // n = p * q
+        BigInteger phi = (p.subtract(BigInteger.ONE)).multiply(q.subtract(BigInteger.ONE)); // φ(n) = (p-1) * (q-1)
 
-    // Key components
-    private BigInteger n; // Modulus
-    private BigInteger e; // Public key exponent
-    private BigInteger d; // Private key exponent
-
-    // Constructor to initialize RSA key generation
-    public RSA(int bitLength) {
-        SecureRandom random = new SecureRandom();
-
-        // Step 1: Choose two large prime numbers, p and q
-        BigInteger p = new BigInteger(bitLength / 2, 100, random);
-        BigInteger q = new BigInteger(bitLength / 2, 100, random);
-
-        // Step 2: Compute n = p * q
-        n = p.multiply(q);
-
-        // Step 3: Compute φ(n) = (p-1) * (q-1)
-        BigInteger phi = (p.subtract(BigInteger.ONE)).multiply(q.subtract(BigInteger.ONE));
-
-        // Step 4: Choose public key exponent e (1 < e < φ(n), and gcd(e, φ(n)) = 1)
-        e = new BigInteger("65537"); // Common choice for e (2^16 + 1)
-
-        // Step 5: Compute private key exponent d (d * e ≡ 1 mod φ(n))
-        d = e.modInverse(phi);
-
-        // Print keys
-        System.out.println("Public Key (e, n): (" + e + ", " + n + ")");
-        System.out.println("Private Key (d, n): (" + d + ", " + n + ")");
+        e = calculateE(phi); // Dynamically find e
+        d = e.modInverse(phi); // Compute d such that (d * e) % φ(n) = 1
     }
 
-    // Encrypt a message
+    // Function to find a valid e that is coprime with φ(n)
+    private BigInteger calculateE(BigInteger phi) {
+        BigInteger e = BigInteger.valueOf(3); // Start from 3
+        while (e.gcd(phi).compareTo(BigInteger.ONE) > 0) { 
+            e = e.add(BigInteger.TWO); // Increment by 2 to ensure it's always odd
+        }
+        return e;
+    }
+
+    // Encrypts the message
     public BigInteger encrypt(BigInteger message) {
-        return message.modPow(e, n); // C = M^e % n
+        return message.modPow(e, n);
     }
 
-    // Decrypt a message
+    // Decrypts the message
     public BigInteger decrypt(BigInteger ciphertext) {
-        return ciphertext.modPow(d, n); // M = C^d % n
+        return ciphertext.modPow(d, n);
     }
 
-    // Main method for testing
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.print("Enter the bit length for primes (e.g., 1024): ");
-        int bitLength = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
+        // Take user input for p and q
+        System.out.print("Enter a prime number p: ");
+        BigInteger p = scanner.nextBigInteger();
+        System.out.print("Enter a prime number q: ");
+        BigInteger q = scanner.nextBigInteger();
 
-        // Initialize RSA with the specified bit length
-        RSA rsa = new RSA(bitLength);
+        // Check if p and q are prime numbers
+        if (!p.isProbablePrime(10) || !q.isProbablePrime(10)) {
+            System.out.println("Error: Both p and q must be prime numbers.");
+            return;
+        }
 
-        System.out.print("Enter a message to encrypt: ");
-        String plaintext = scanner.nextLine();
+        // Ensure p and q are different
+        if (p.equals(q)) {
+            System.out.println("Error: p and q must be different.");
+            return;
+        }
 
-        // Convert plaintext to BigInteger
-        BigInteger message = new BigInteger(plaintext.getBytes());
+        // Generate RSA keys
+        RSA rsa = new RSA(p, q);
+        System.out.println("Public Key (e, n): (" + rsa.e + ", " + rsa.n + ")");
+        System.out.println("Private Key (d, n): (" + rsa.d + ", " + rsa.n + ")");
 
-        // Encrypt the message
-        BigInteger ciphertext = rsa.encrypt(message);
-        System.out.println("Encrypted message (Ciphertext): " + ciphertext);
+        // Take user input for message
+        System.out.print("Enter a number to encrypt (must be smaller than n): ");
+        BigInteger message = scanner.nextBigInteger();
 
-        // Decrypt the message
-        BigInteger decryptedMessage = rsa.decrypt(ciphertext);
-        String recoveredPlaintext = new String(decryptedMessage.toByteArray());
-        System.out.println("Decrypted message (Plaintext): " + recoveredPlaintext);
+        if (message.compareTo(rsa.n) >= 0) {
+            System.out.println("Error: Message must be smaller than n.");
+            return;
+        }
+
+        // Encrypt and decrypt
+        BigInteger encrypted = rsa.encrypt(message);
+        System.out.println("Encrypted Message: " + encrypted);
+
+        BigInteger decrypted = rsa.decrypt(encrypted);
+        System.out.println("Decrypted Message: " + decrypted);
 
         scanner.close();
     }

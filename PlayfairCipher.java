@@ -14,13 +14,13 @@ public class PlayfairCipher {
         String text = scanner.nextLine().toUpperCase();
 
         prepareKeyMatrix(key);
+
         String ciphertext = encrypt(text);
         System.out.println("Ciphertext: " + ciphertext);
          // Decryption (assuming text contains only valid digraphs)
         String plaintext = decrypt(ciphertext);
         System.out.println("Plaintext: " + plaintext);
         
-
         scanner.close();
     }
 
